@@ -6,9 +6,11 @@ require('dotenv').config();
 
 const app = express();
 
-// CORS for frontend
+// ✅ Allow frontend domain explicitly
 app.use(cors({
-  origin: process.env.CLIENT_URL,
+  origin: ["https://gmail-var-frontend-wbjj.vercel.app"], // your Vercel frontend URL
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 }));
 
