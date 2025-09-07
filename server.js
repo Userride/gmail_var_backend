@@ -8,8 +8,8 @@ const app = express();
 
 // Allowed origins (local + production)
 const allowedOrigins = [
-  'http://localhost:3000',
-  'https://gmail-var-frontend-wbjj.vercel.app'
+  process.env.CLIENT_URL_LOCAL,
+  process.env.CLIENT_URL_PROD
 ];
 
 // CORS setup
