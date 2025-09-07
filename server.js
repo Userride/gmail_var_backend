@@ -6,9 +6,21 @@ require('dotenv').config();
 
 const app = express();
 
-// CORS for frontend only
+// Allowed origins (local + production)
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://gmail-var-frontend-wbjj.vercel.app'
+];
+
+// CORS setup
 app.use(cors({
-  origin: process.env.CLIENT_URL,
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 
