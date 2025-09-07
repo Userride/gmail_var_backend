@@ -7,8 +7,7 @@ const nodemailer = require('nodemailer');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
-const isProd = process.env.NODE_ENV === 'production';
-const CLIENT_URL = isProd ? process.env.CLIENT_URL_PROD : process.env.CLIENT_URL_LOCAL;
+const CLIENT_URL = process.env.CLIENT_URL;
 const SERVER_URL = process.env.SERVER_URL;
 
 // Nodemailer setup
@@ -35,7 +34,6 @@ router.post('/register', async (req, res) => {
     const user = new User({ name, email, password: hashed, verifyToken });
     await user.save();
 
-    // ✅ Verification link always hits backend
     const verifyLink = `${SERVER_URL}/api/auth/verify/${verifyToken}`;
 
     await transporter.sendMail({
@@ -65,13 +63,37 @@ router.get('/verify/:token', async (req, res) => {
     user.verifyToken = undefined;
     await user.save();
 
-    // Auto-login by generating JWT
     const jwtToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
-    // ✅ Redirect to deployed frontend (or localhost in dev)
     return res.redirect(`${CLIENT_URL}/login?token=${jwtToken}`);
   } catch (err) {
     console.error('Verify error:', err);
     res.status(500).send('Server error');
   }
 });
+
+// ===== LOGIN =====
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password)
+      return res.status(400).json({ message: 'Email and password required' });
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
+    if (!user.isVerified) return res.status(403).json({ message: 'Please verify your email first' });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+
+    res.json({ token, user: { id: user._id, name: user.name, email: user.email } });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ✅ Correct export
+module.exports = router;
